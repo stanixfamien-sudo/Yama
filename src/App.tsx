@@ -112,17 +112,40 @@ export default function App() {
 
   function navigate(next: Tab) { setTab(next); setEditing(false); }
 
+  const pageTitle =
+    tab === "home" ? "Bienvenue dans ton univers."
+    : tab === "me" ? "Ce que tu veux partager."
+    : tab === "memories" ? "Nos souvenirs."
+    : tab === "wishlist" ? "Tes envies."
+    : tab === "mood" ? "Ton humeur."
+    : "Petites surprises.";
+
   return (
     <main className="app-shell">
       <header className="topbar">
-        <button className="brand" onClick={() => navigate("home")}><span className="brand-mark">Y</span><span>YAMA</span></button>
+        <button className="brand" onClick={() => navigate("home")} aria-label="Retour à l'accueil">
+          <span className="brand-mark">Y</span><span>YAMA</span>
+        </button>
+        <nav className="desktop-nav" aria-label="Navigation principale">
+          {tabs.map(({ id, label }) => (
+            <button className={tab === id ? "active" : ""} key={id} onClick={() => navigate(id)}>{label}</button>
+          ))}
+        </nav>
         <span className="topbar-caption">{userEmail || "ton petit univers"}</span>
       </header>
 
       <section className="hero">
-        <span className="eyebrow">YAMA · {name.toUpperCase()}</span>
-        <h1>{tab === "home" ? "Bienvenue dans ton univers." : tab === "me" ? "Ce que tu veux partager." : tab === "memories" ? "Nos souvenirs." : tab === "wishlist" ? "Tes envies." : tab === "mood" ? "Ton humeur." : "Petites surprises."} <Heart size={25} fill="currentColor" /></h1>
-        <p>Un espace personnel qui apprend doucement ce que tu aimes, garde tes souvenirs et prépare de jolies surprises.</p>
+        <div className="hero-copy">
+          <span className="eyebrow">YAMA · {name.toUpperCase()}</span>
+          <h1>{pageTitle} <Heart size={25} fill="currentColor" /></h1>
+          <p>Un espace personnel qui apprend doucement ce que tu aimes, garde tes souvenirs et prépare de jolies surprises.</p>
+        </div>
+        <div className="hero-art" aria-hidden="true">
+          <span className="hero-orbit hero-orbit-one" />
+          <span className="hero-orbit hero-orbit-two" />
+          <div className="hero-monogram">Y</div>
+          <div className="hero-mood">{mood || "☁️"}</div>
+        </div>
       </section>
 
       {tab === "home" && (
@@ -132,7 +155,7 @@ export default function App() {
             <div className="moods">{moods.map((item) => <button className={mood === item ? "mood-button selected" : "mood-button"} key={item} onClick={() => setMood(item)}>{item}</button>)}</div>
           </section>
 
-          <section className="card">
+          <section className="card profile-card">
             <div className="card-icon"><UserRound size={21} /></div>
             <span className="card-kicker">Ton profil</span>
             <h2>{profile.name ? "Ton univers commence à prendre forme." : "Fais connaissance avec ton espace."}</h2>
@@ -140,7 +163,7 @@ export default function App() {
             <button className="text-button" onClick={() => { setTab("me"); setEditing(true); }}>{profile.name ? "Modifier mon profil" : "Commencer"} <ArrowRight size={17} /></button>
           </section>
 
-          <section className="card">
+          <section className="card interests-card">
             <div className="card-heading"><div><span className="card-kicker">Ton univers</span><h2>Ce qui compte pour toi.</h2></div><Sparkles size={22} /></div>
             <div className="chips">{profile.favoriteThings.length ? profile.favoriteThings.map((x) => <span className="chip" key={x}>{x}</span>) : <span className="empty-chip">Tes goûts apparaîtront ici.</span>}</div>
           </section>
