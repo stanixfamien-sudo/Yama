@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, Gift, Heart, Home, Image, Pencil, Plus, Sparkles, UserRound } from "lucide-react";
 import { supabase } from "./lib/supabase";
+import { AuthGate } from "./components/AuthGate";
 
 type Tab = "home" | "memories" | "surprises" | "me";
 type Profile = { name: string; nickname: string; favoriteColor: string; favoriteThings: string[]; note: string };
@@ -30,11 +31,24 @@ export default function App() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncError, setSyncError] = useState("");
+  const [sessionReady, setSessionReady] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => { localStorage.setItem("yama-profile", JSON.stringify(profile)); }, [profile]);
 
   useEffect(() => {
     let mounted = true;
+    if (!supabase) { setSessionReady(true); return; }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      setUserEmail(session?.user.email ?? session?.user.phone ?? "");
+      setSessionReady(true);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setUserEmail(session?.user.email ?? session?.user.phone ?? "");
+      setSessionReady(true);
+    });
     async function loadProfile() {
       if (!supabase) return;
       const { data: { session } } = await supabase.auth.getSession();
@@ -52,8 +66,12 @@ export default function App() {
       }
     }
     loadProfile();
-    return () => { mounted = false; };
+    return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
+  }, []);
+
+  if (!sessionReady) return <main className="auth-shell"><section className="auth-card"><div className="auth-mark"><Heart size={25} fill="currentColor" /></div><h1>YAMA</h1><p>Chargement de ton univers…</p></section></main>;
+  if (supabase && !userEmail) return <AuthGate />;
 
   const name = profile.nickname || profile.name || "Yama";
 
@@ -96,7 +114,7 @@ export default function App() {
     <main className="app-shell">
       <header className="topbar">
         <button className="brand" onClick={() => navigate("home")}><span className="brand-mark">Y</span><span>YAMA</span></button>
-        <span className="topbar-caption">ton petit univers</span>
+        <span className="topbar-caption">{userEmail || "ton petit univers"}</span>
       </header>
 
       <section className="hero">
