@@ -43,6 +43,7 @@ export default function App() {
       if (!mounted) return;
       setUserEmail(session?.user.email ?? session?.user.phone ?? "");
       setSessionReady(true);
+      if (session) void loadProfile();
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
