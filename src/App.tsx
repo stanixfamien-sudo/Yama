@@ -19,7 +19,7 @@ const tabs = [
   { id: "me" as Tab, label: "Moi", icon: UserRound },
 ];
 
-const moods = ["😊", "🥰", "😌", "😴", "✨"];
+const moods = [\n  { value: "😊", label: "Joyeuse", mark: "J" },\n  { value: "🥰", label: "Affectueuse", mark: "A" },\n  { value: "😌", label: "Calme", mark: "C" },\n  { value: "😴", label: "Fatiguée", mark: "F" },\n  { value: "✨", label: "Inspirée", mark: "I" },\n];
 const interests = ["Musique", "Mode", "Voyage", "Films", "Food", "Lecture", "Sport", "Art"];
 const emptyProfile: Profile = { name: "", nickname: "", favoriteColor: "", favoriteThings: [], note: "" };
 
@@ -195,8 +195,8 @@ export default function App() {
       {tab === "home" && (
         <div className="page-grid dashboard">
           <section className="card mood-card">
-            <div className="card-heading"><div><span className="card-kicker">Aujourd'hui</span><h2>Comment tu te sens ?</h2></div>{mood && <span className="mood-selected">{mood}</span>}</div>
-            <div className="moods">{moods.map((item) => <button className={mood === item ? "mood-button selected" : "mood-button"} key={item} onClick={() => setMood(item)}>{item}</button>)}</div>
+            <div className="card-heading"><div><span className="card-kicker">Aujourd'hui</span><h2>Comment tu te sens ?</h2></div>{mood && <span className="mood-selected">{moods.find((item) => item.value === mood)?.label ?? "Humeur"}</span>}</div>
+            <div className="moods">{moods.map((item) => <button className={mood === item.value ? "mood-button selected" : "mood-button"} key={item.value} onClick={() => setMood(item.value)} title={item.label} aria-label={item.label}><span className="mood-mark">{item.mark}</span></button>)}</div>
             <button className="text-button mood-history-link" onClick={() => navigate("mood")}>Voir mon historique <ArrowRight size={16} /></button>
           </section>
 
