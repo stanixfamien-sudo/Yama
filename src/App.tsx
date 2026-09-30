@@ -166,7 +166,7 @@ export default function App() {
   const pageTitle =
     tab === "home" ? "Bienvenue dans ton univers."
     : tab === "me" ? "Ce que tu veux partager."
-    : tab === "memories" ? "Nos souvenirs."
+    : tab === "tasks" ? "Ton quotidien."
     : tab === "wishlist" ? "Tes envies."
     : tab === "mood" ? "Ton humeur."
     : tab === "ai" ? "Ton espace Yama AI."
