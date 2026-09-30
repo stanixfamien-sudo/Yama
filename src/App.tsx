@@ -187,7 +187,7 @@ export default function App() {
         <div className="hero-copy">
           <span className="eyebrow">YAMA · {name.toUpperCase()}</span>
           <h1>{pageTitle} <Heart size={25} fill="currentColor" /></h1>
-          <p>Un espace personnel qui apprend doucement ce que tu aimes, garde tes souvenirs et prépare de jolies surprises.</p>
+          <p>Un espace personnel qui apprend doucement ce que tu aimes, garde ce qui compte et t'aide à avancer.</p>
           <div className="hero-actions">
             <button className="hero-action primary" onClick={() => navigate("tasks")}><Plus size={17} /> Ajouter une tâche</button>
             <button className="hero-action" onClick={() => navigate("wishlist")}><Heart size={17} /> Ajouter une envie</button>
