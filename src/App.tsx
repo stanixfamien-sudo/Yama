@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Check, Gift, Heart, Home, Image, Pencil, Plus, Sparkles, UserRound } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { AuthGate } from "./components/AuthGate";
+import { YamaCorePanel } from "./components/YamaCorePanel";
 
-type Tab = "home" | "memories" | "surprises" | "me";
+type Tab = "home" | "memories" | "wishlist" | "surprises" | "mood" | "me";
 type Profile = { name: string; nickname: string; favoriteColor: string; favoriteThings: string[]; note: string };
 
 const tabs = [
   { id: "home" as Tab, label: "Accueil", icon: Home },
   { id: "memories" as Tab, label: "Souvenirs", icon: Image },
+  { id: "wishlist" as Tab, label: "Wishlist", icon: Heart },
+  { id: "mood" as Tab, label: "Humeur", icon: Sparkles },
   { id: "surprises" as Tab, label: "Surprises", icon: Gift },
   { id: "me" as Tab, label: "Moi", icon: UserRound },
 ];
@@ -118,7 +121,7 @@ export default function App() {
 
       <section className="hero">
         <span className="eyebrow">YAMA · {name.toUpperCase()}</span>
-        <h1>{tab === "home" ? "Bienvenue dans ton univers." : tab === "me" ? "Ce que tu veux partager." : tab === "memories" ? "Nos souvenirs." : "Petites surprises."} <Heart size={25} fill="currentColor" /></h1>
+        <h1>{tab === "home" ? "Bienvenue dans ton univers." : tab === "me" ? "Ce que tu veux partager." : tab === "memories" ? "Nos souvenirs." : tab === "wishlist" ? "Tes envies." : tab === "mood" ? "Ton humeur." : "Petites surprises."} <Heart size={25} fill="currentColor" /></h1>
         <p>Un espace personnel qui apprend doucement ce que tu aimes, garde tes souvenirs et prépare de jolies surprises.</p>
       </section>
 
@@ -150,12 +153,9 @@ export default function App() {
         </div>
       )}
 
-      {tab === "memories" && (
-        <section className="content-section">
-          <div className="section-title"><div><span className="card-kicker">Privé</span><h2>Les souvenirs à venir</h2></div><button className="circle-button"><Plus size={20} /></button></div>
-          <div className="empty-state"><div className="empty-icon"><Image size={28} /></div><h3>Le premier souvenir n'attend que toi.</h3><p>Photos, petits moments et messages pourront être ajoutés ici.</p></div>
-        </section>
-      )}
+      {tab === "memories" && <YamaCorePanel mode="memories" />}
+      {tab === "wishlist" && <YamaCorePanel mode="wishlist" />}
+      {tab === "mood" && <YamaCorePanel mode="mood" currentMood={mood} />}
 
       {tab === "surprises" && (
         <section className="content-section">
