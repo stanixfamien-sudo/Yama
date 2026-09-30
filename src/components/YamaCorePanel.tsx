@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Heart, Plus, Trash2 } from "lucide-react";
+import { Check, Heart, Plus, Smile, Trash2 } from "lucide-react";
 import {
   addMoodEntry,
   deleteMemory,
@@ -16,7 +16,7 @@ import {
   type WishlistItem,
 } from "../features/yamaCore";
 
-type Props = {
+const moodLabels: Record<string, string> = { "😊": "Joyeuse", "🥰": "Affectueuse", "😌": "Calme", "😴": "Fatiguée", "✨": "Inspirée" };\n\ntype Props = {
   mode: "memories" | "wishlist" | "mood";
   currentMood?: string;
 };
@@ -96,7 +96,7 @@ export function YamaCorePanel({ mode, currentMood }: Props) {
       <section className="content-section">
         <div className="section-title">
           <div><span className="card-kicker">Mémoire du jour</span><h2>Ton historique d'humeur</h2></div>
-          <Heart size={24} />
+          <Smile size={24} />
         </div>
         {currentMood && (
           <button className="primary-button" onClick={() => void recordCurrentMood()} disabled={saving}>
@@ -110,7 +110,7 @@ export function YamaCorePanel({ mode, currentMood }: Props) {
             ) : moods.slice(0, 10).map((entry) => (
               <article className="surprise-item" key={entry.id}>
                 <span>{new Date(entry.createdAt).toLocaleDateString("fr-FR")}</span>
-                <h3>{entry.mood}</h3>
+                <h3>{moodLabels[entry.mood] ?? entry.mood}</h3>
                 <p>{entry.note || "Aucune note."}</p>
               </article>
             ))}
