@@ -83,6 +83,110 @@ function mapMood(row: any): MoodEntry {
   };
 }
 
+
+export type Task = {
+  id: string;
+  title: string;
+  note: string;
+  priority: "low" | "medium" | "high";
+  dueDate: string;
+  createdAt: string;
+  isCompleted: boolean;
+};
+
+const TASKS_KEY = "yama-tasks";
+
+function mapTask(row: any): Task {
+  return {
+    id: row.id,
+    title: row.title,
+    note: row.note ?? "",
+    priority: row.priority ?? "medium",
+    dueDate: row.due_date ?? "",
+    createdAt: row.created_at,
+    isCompleted: Boolean(row.is_completed),
+  };
+}
+
+export async function getTasks() {
+  const userId = await currentUserId();
+  if (supabase && userId) {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("id,title,note,priority,due_date,created_at,is_completed")
+      .eq("user_id", userId)
+      .order("is_completed", { ascending: true })
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      const result = data.map(mapTask);
+      write(TASKS_KEY, result);
+      return result;
+    }
+  }
+  return read<Task[]>(TASKS_KEY, []);
+}
+
+export async function saveTask(input: Omit<Task, "id" | "createdAt">) {
+  const userId = await currentUserId();
+  if (supabase && userId) {
+    const { data, error } = await supabase.from("tasks").insert({
+      user_id: userId,
+      title: input.title,
+      note: input.note,
+      priority: input.priority,
+      due_date: input.dueDate || null,
+      is_completed: input.isCompleted,
+    }).select("id,title,note,priority,due_date,created_at,is_completed").single();
+    if (!error && data) {
+      const item = mapTask(data);
+      write(TASKS_KEY, [item, ...read<Task[]>(TASKS_KEY, [])]);
+      return item;
+    }
+  }
+  const item: Task = { ...input, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+  write(TASKS_KEY, [item, ...read<Task[]>(TASKS_KEY, [])]);
+  return item;
+}
+
+export async function updateTask(id: string, patch: Partial<Task>) {
+  const userId = await currentUserId();
+  const local = read<Task[]>(TASKS_KEY, []);
+  if (supabase && userId) {
+    const payload: Record<string, unknown> = {};
+    if (patch.title !== undefined) payload.title = patch.title;
+    if (patch.note !== undefined) payload.note = patch.note;
+    if (patch.priority !== undefined) payload.priority = patch.priority;
+    if (patch.dueDate !== undefined) payload.due_date = patch.dueDate || null;
+    if (patch.isCompleted !== undefined) payload.is_completed = patch.isCompleted;
+    const { data, error } = await supabase.from("tasks").update(payload)
+      .eq("id", id).eq("user_id", userId)
+      .select("id,title,note,priority,due_date,created_at,is_completed").single();
+    if (!error && data) {
+      const result = local.map((item) => item.id === id ? mapTask(data) : item);
+      write(TASKS_KEY, result);
+      return result;
+    }
+  }
+  const result = local.map((item) => item.id === id ? { ...item, ...patch } : item);
+  write(TASKS_KEY, result);
+  return result;
+}
+
+export async function deleteTask(id: string) {
+  const userId = await currentUserId();
+  if (supabase && userId) {
+    const { error } = await supabase.from("tasks").delete().eq("id", id).eq("user_id", userId);
+    if (!error) {
+      const result = read<Task[]>(TASKS_KEY, []).filter((item) => item.id !== id);
+      write(TASKS_KEY, result);
+      return result;
+    }
+  }
+  const result = read<Task[]>(TASKS_KEY, []).filter((item) => item.id !== id);
+  write(TASKS_KEY, result);
+  return result;
+}
+
 export async function getMemories() {
   const userId = await currentUserId();
   if (supabase && userId) {
