@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, Gift, Heart, Home, Image, Pencil, Plus, Sparkles, UserRound } from "lucide-react";
+import { supabase } from "./lib/supabase";
 
 type Tab = "home" | "memories" | "surprises" | "me";
 type Profile = { name: string; nickname: string; favoriteColor: string; favoriteThings: string[]; note: string };
