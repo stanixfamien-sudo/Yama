@@ -66,9 +66,7 @@ export default function App() {
         });
       }
     }
-    loadProfile();
     return () => { mounted = false; listener.subscription.unsubscribe(); };
-  }, []);
   }, []);
 
   if (!sessionReady) return <main className="auth-shell"><section className="auth-card"><div className="auth-mark"><Heart size={25} fill="currentColor" /></div><h1>YAMA</h1><p>Chargement de ton univers…</p></section></main>;
