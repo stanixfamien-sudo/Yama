@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { ArrowRight, Check, Gift, Heart, Home, Image, Pencil, Plus, Sparkles, UserRound } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Check, Gift, Heart, Home, Image, Lightbulb, Pencil, Plus, Sparkles, Target, UserRound } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { AuthGate } from "./components/AuthGate";
 import { YamaCorePanel } from "./components/YamaCorePanel";
+import { getMemories, getMoodHistory, getWishlist, type Memory, type MoodEntry, type WishlistItem } from "./features/yamaCore";
 
 type Tab = "home" | "memories" | "wishlist" | "surprises" | "mood" | "me";
 type Profile = { name: string; nickname: string; favoriteColor: string; favoriteThings: string[]; note: string };
@@ -31,6 +32,10 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("home");
   const [profile, setProfile] = useState<Profile>(readProfile);
   const [mood, setMood] = useState("");
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [moodHistory, setMoodHistory] = useState<MoodEntry[]>([]);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncError, setSyncError] = useState("");
@@ -72,10 +77,48 @@ export default function App() {
     return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
 
-  if (!sessionReady) return <main className="auth-shell"><section className="auth-card"><div className="auth-mark"><Heart size={25} fill="currentColor" /></div><h1>YAMA</h1><p>Chargement de ton univers…</p></section></main>;
-  if (supabase && !userEmail) return <AuthGate />;
+  useEffect(() => {
+    if (!sessionReady || (supabase && !userEmail)) return;
+    let active = true;
+    setDashboardLoading(true);
+    Promise.all([getMemories(), getWishlist(), getMoodHistory()]).then(([memoryData, wishlistData, moodData]) => {
+      if (!active) return;
+      setMemories(memoryData);
+      setWishlist(wishlistData);
+      setMoodHistory(moodData);
+      if (!mood && moodData[0]) setMood(moodData[0].mood);
+      setDashboardLoading(false);
+    }).catch(() => {
+      if (active) setDashboardLoading(false);
+    });
+    return () => { active = false; };
+  }, [sessionReady, userEmail]);
 
   const name = profile.nickname || profile.name || "Yama";
+  const completedWishlist = wishlist.filter((item) => item.isCompleted).length;
+  const aiMemories = memories.filter((item) => item.isRetainedInAiMemory).length;
+  const aiWishlist = wishlist.filter((item) => item.isSharedWithAi).length;
+  const profileProgress = [
+    Boolean(profile.name),
+    Boolean(profile.nickname),
+    Boolean(profile.favoriteColor),
+    profile.favoriteThings.length > 0,
+    Boolean(profile.note),
+  ].filter(Boolean).length * 20;
+
+  const suggestion = useMemo(() => {
+    if (wishlist.find((item) => !item.isCompleted)) {
+      const item = wishlist.find((entry) => !entry.isCompleted);
+      return { title: item?.title ?? "Une envie à retrouver", reason: "Une envie est encore en attente dans ta wishlist.", action: "Voir ma wishlist", target: "wishlist" as Tab };
+    }
+    if (profile.favoriteThings[0]) {
+      return { title: "Explorer " + profile.favoriteThings[0], reason: "C'est l'un de tes centres d'intérêt enregistrés.", action: "Voir mon profil", target: "me" as Tab };
+    }
+    if (memories.length) {
+      return { title: "Revisiter un souvenir", reason: "Tu as déjà commencé à construire ta mémoire YAMA.", action: "Mes souvenirs", target: "memories" as Tab };
+    }
+    return { title: "Créer ton premier souvenir", reason: "YAMA apprend à partir de ce que tu choisis de conserver.", action: "Ajouter un souvenir", target: "memories" as Tab };
+  }, [wishlist, profile.favoriteThings, memories]);
 
   function toggleInterest(item: string) {
     setProfile((p) => ({
@@ -120,17 +163,14 @@ export default function App() {
     : tab === "mood" ? "Ton humeur."
     : "Petites surprises.";
 
+  if (!sessionReady) return <main className="auth-shell"><section className="auth-card"><div className="auth-mark"><Heart size={25} fill="currentColor" /></div><h1>YAMA</h1><p>Chargement de ton univers…</p></section></main>;
+  if (supabase && !userEmail) return <AuthGate />;
+
   return (
     <main className="app-shell">
       <header className="topbar">
-        <button className="brand" onClick={() => navigate("home")} aria-label="Retour à l'accueil">
-          <span className="brand-mark">Y</span><span>YAMA</span>
-        </button>
-        <nav className="desktop-nav" aria-label="Navigation principale">
-          {tabs.map(({ id, label }) => (
-            <button className={tab === id ? "active" : ""} key={id} onClick={() => navigate(id)}>{label}</button>
-          ))}
-        </nav>
+        <button className="brand" onClick={() => navigate("home")} aria-label="Retour à l'accueil"><span className="brand-mark">Y</span><span>YAMA</span></button>
+        <nav className="desktop-nav" aria-label="Navigation principale">{tabs.map(({ id, label }) => <button className={tab === id ? "active" : ""} key={id} onClick={() => navigate(id)}>{label}</button>)}</nav>
         <span className="topbar-caption">{userEmail || "ton petit univers"}</span>
       </header>
 
@@ -139,28 +179,46 @@ export default function App() {
           <span className="eyebrow">YAMA · {name.toUpperCase()}</span>
           <h1>{pageTitle} <Heart size={25} fill="currentColor" /></h1>
           <p>Un espace personnel qui apprend doucement ce que tu aimes, garde tes souvenirs et prépare de jolies surprises.</p>
+          <div className="hero-actions">
+            <button className="hero-action primary" onClick={() => navigate("memories")}><Plus size={17} /> Ajouter un souvenir</button>
+            <button className="hero-action" onClick={() => navigate("wishlist")}><Heart size={17} /> Ajouter une envie</button>
+          </div>
         </div>
         <div className="hero-art" aria-hidden="true">
-          <span className="hero-orbit hero-orbit-one" />
-          <span className="hero-orbit hero-orbit-two" />
-          <div className="hero-monogram">Y</div>
-          <div className="hero-mood">{mood || "☁️"}</div>
+          <span className="hero-orbit hero-orbit-one" /><span className="hero-orbit hero-orbit-two" />
+          <div className="hero-monogram">Y</div><div className="hero-mood">{mood || "☁️"}</div>
         </div>
       </section>
 
       {tab === "home" && (
-        <div className="page-grid">
+        <div className="page-grid dashboard">
           <section className="card mood-card">
             <div className="card-heading"><div><span className="card-kicker">Aujourd'hui</span><h2>Comment tu te sens ?</h2></div>{mood && <span className="mood-selected">{mood}</span>}</div>
             <div className="moods">{moods.map((item) => <button className={mood === item ? "mood-button selected" : "mood-button"} key={item} onClick={() => setMood(item)}>{item}</button>)}</div>
+            <button className="text-button mood-history-link" onClick={() => navigate("mood")}>Voir mon historique <ArrowRight size={16} /></button>
+          </section>
+
+          <section className="stats-strip">
+            <button className="stat-card" onClick={() => navigate("memories")}><span className="stat-number">{dashboardLoading ? "…" : memories.length}</span><span>Souvenirs</span><Image size={18} /></button>
+            <button className="stat-card" onClick={() => navigate("wishlist")}><span className="stat-number">{dashboardLoading ? "…" : wishlist.length}</span><span>Envies</span><Heart size={18} /></button>
+            <button className="stat-card" onClick={() => navigate("mood")}><span className="stat-number">{dashboardLoading ? "…" : moodHistory.length}</span><span>Humeurs</span><Sparkles size={18} /></button>
           </section>
 
           <section className="card profile-card">
             <div className="card-icon"><UserRound size={21} /></div>
-            <span className="card-kicker">Ton profil</span>
+            <span className="card-kicker">Ton profil · {profileProgress}%</span>
+            <div className="progress-track"><span style={{ width: profileProgress + "%" }} /></div>
             <h2>{profile.name ? "Ton univers commence à prendre forme." : "Fais connaissance avec ton espace."}</h2>
             <p>{profile.favoriteThings.length ? profile.favoriteThings.length + " centre(s) d'intérêt enregistré(s)." : "Choisis quelques préférences pour rendre Yama vraiment personnel."}</p>
-            <button className="text-button" onClick={() => { setTab("me"); setEditing(true); }}>{profile.name ? "Modifier mon profil" : "Commencer"} <ArrowRight size={17} /></button>
+            <button className="text-button" onClick={() => { setTab("me"); setEditing(true); }}>{profile.name ? "Compléter mon profil" : "Commencer"} <ArrowRight size={17} /></button>
+          </section>
+
+          <section className="card suggestion-card">
+            <div className="suggestion-icon"><Lightbulb size={22} /></div>
+            <span className="card-kicker">Pour toi</span>
+            <h2>{suggestion.title}</h2>
+            <p>{suggestion.reason}</p>
+            <button className="text-button" onClick={() => navigate(suggestion.target)}>{suggestion.action} <ArrowRight size={17} /></button>
           </section>
 
           <section className="card interests-card">
@@ -168,10 +226,23 @@ export default function App() {
             <div className="chips">{profile.favoriteThings.length ? profile.favoriteThings.map((x) => <span className="chip" key={x}>{x}</span>) : <span className="empty-chip">Tes goûts apparaîtront ici.</span>}</div>
           </section>
 
+          <section className="card recent-card">
+            <div className="card-heading"><div><span className="card-kicker">Mémoire récente</span><h2>Ce que YAMA garde.</h2></div><button className="mini-link" onClick={() => navigate("memories")}>Tout voir</button></div>
+            {dashboardLoading ? <p>Chargement de ton univers…</p> : memories.length ? <div className="recent-list">{memories.slice(0,3).map((item) => <button key={item.id} onClick={() => navigate("memories")}><span className="recent-dot">{item.isFavorite ? "♥" : "•"}</span><span><strong>{item.title}</strong><small>{item.category}</small></span><ArrowRight size={16} /></button>)}</div> : <div className="inline-empty"><Image size={20}/><span>Ton premier souvenir peut commencer ici.</span><button className="mini-link" onClick={() => navigate("memories")}>Ajouter</button></div>}
+          </section>
+
+          <section className="card wishlist-progress-card">
+            <div className="card-heading"><div><span className="card-kicker">Wishlist</span><h2>Tes envies avancent.</h2></div><Target size={22}/></div>
+            <div className="wishlist-progress"><strong>{completedWishlist}</strong><span> / {wishlist.length || 0} réalisées</span></div>
+            <div className="progress-track"><span style={{ width: wishlist.length ? ((completedWishlist / wishlist.length) * 100) + "%" : "0%" }} /></div>
+            <button className="text-button" onClick={() => navigate("wishlist")}>Voir mes envies <ArrowRight size={17}/></button>
+          </section>
+
           <section className="card ai-card wide-card">
-            <span className="card-kicker">Bientôt</span><h2>Yama AI</h2>
-            <p>Un assistant personnel construit à partir des informations que tu choisis de partager. L'IA viendra après la base de données et la sécurité.</p>
-            <span className="coming-soon">En préparation</span>
+            <div className="ai-card-top"><div className="suggestion-icon"><Sparkles size={21}/></div><span className="card-kicker">Yama AI · Préparation</span></div>
+            <h2>Une IA qui te connaît seulement si tu l'autorises.</h2>
+            <p>Le profil, les souvenirs et la wishlist peuvent devenir un contexte personnalisé. Rien n'est présenté comme mémoire IA tant que tu ne l'as pas autorisé.</p>
+            <div className="ai-permission-row"><span>{aiMemories} souvenir(s) autorisé(s)</span><span>{aiWishlist} envie(s) autorisée(s)</span><span>🔒 Contrôle par toi</span></div>
           </section>
         </div>
       )}
@@ -184,9 +255,10 @@ export default function App() {
         <section className="content-section">
           <div className="section-title"><div><span className="card-kicker">À découvrir</span><h2>Des surprises personnalisées</h2></div><Gift size={25} /></div>
           <div className="surprise-grid">
-            <article className="surprise-item"><span>01</span><h3>Une idée pour toi</h3><p>Les premières surprises seront basées sur tes préférences explicites.</p></article>
-            <article className="surprise-item"><span>02</span><h3>Une attention</h3><p>Des messages et petites attentions pourront être préparés ici.</p></article>
+            <article className="surprise-item"><span>01</span><h3>{suggestion.title}</h3><p>{suggestion.reason}</p><button className="text-button" onClick={() => navigate(suggestion.target)}>Explorer <ArrowRight size={17}/></button></article>
+            <article className="surprise-item"><span>02</span><h3>Une attention pour aujourd'hui</h3><p>{mood ? "Ton humeur actuelle est " + mood + ". YAMA pourra bientôt adapter ses suggestions à ton état du moment." : "Choisis ton humeur pour permettre à YAMA de personnaliser ses futures suggestions."}</p><button className="text-button" onClick={() => navigate("mood")}>Choisir mon humeur <ArrowRight size={17}/></button></article>
           </div>
+          <div className="surprise-banner"><Gift size={24}/><div><strong>Le moteur de surprises arrive ensuite.</strong><p>Il pourra combiner préférences, humeur, souvenirs autorisés et wishlist pour expliquer pourquoi une idée t'est proposée.</p></div></div>
         </section>
       )}
 
@@ -197,6 +269,7 @@ export default function App() {
             <div className="profile-summary">
               <div className="avatar">{(profile.name || "Y").charAt(0).toUpperCase()}</div>
               <h3>{profile.name || "Ton prénom"}</h3><p>{profile.nickname ? "Surnom : " + profile.nickname : "Ajoute un surnom si tu en as envie."}</p>
+              <div className="profile-stat-row"><span><strong>{profile.favoriteThings.length}</strong> intérêts</span><span><strong>{memories.length}</strong> souvenirs</span><span><strong>{wishlist.length}</strong> envies</span></div>
               <div className="chips">{profile.favoriteThings.map((x) => <span className="chip" key={x}>{x}</span>)}</div>
               {profile.note && <p className="profile-note">“{profile.note}”</p>}
             </div>
