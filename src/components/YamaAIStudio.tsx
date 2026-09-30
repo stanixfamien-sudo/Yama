@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { supabase } from "../lib/supabase";
 import {
   BookOpen, CheckCircle2, FileImage, FileText, ImagePlus, Lightbulb,
   Play, Sparkles, Upload, WandSparkles, X,
@@ -6,6 +7,7 @@ import {
 
 type StudioMode = "chat" | "image" | "retouch" | "files" | "homework" | "learn";
 type LocalFile = { id: string; file: File; url: string };
+type AIResult = { type: "text"; text: string } | { type: "image"; mimeType: string; dataUrl: string };
 
 const tools: { id: StudioMode; label: string; description: string; icon: typeof Sparkles }[] = [
   { id: "chat", label: "Assistant", description: "Réfléchir, écrire et organiser", icon: Sparkles },
@@ -21,11 +23,15 @@ export function YamaAIStudio() {
   const [prompt, setPrompt] = useState("");
   const [files, setFiles] = useState<LocalFile[]>([]);
   const [generated, setGenerated] = useState<string[]>([]);
+  const [aiResults, setAiResults] = useState<AIResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [quizAnswer, setQuizAnswer] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const activeTool = tools.find((tool) => tool.id === mode) ?? tools[0];
   const canGenerate = prompt.trim().length > 0 || files.length > 0;
+  const apiUrl = import.meta.env.VITE_AI_API_URL || "/api/yama-ai";
 
   const modeCopy = useMemo(() => ({
     chat: { title: "Ton espace de réflexion", placeholder: "Écris ce que tu veux faire avec Yama…" },
@@ -50,16 +56,52 @@ export function YamaAIStudio() {
     });
   }
 
-  function runAction() {
-    if (!canGenerate) return;
-    const action = mode === "homework"
-      ? "Étape suivante : décomposer l'énoncé et construire la méthode."
-      : mode === "learn"
-      ? "Parcours créé : explication → exemple → exercice → correction."
-      : mode === "files"
-      ? "Fichier prêt : extraction, résumé et questions peuvent être ajoutés à ce flux."
-      : "Demande " + activeTool.label.toLowerCase() + " préparée pour le moteur Yama AI.";
-    setGenerated((current) => [action, ...current].slice(0, 4));
+  async function fileToDataUrl(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Impossible de lire le fichier."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function runAction() {
+    if (!canGenerate || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      if (!supabase) throw new Error("Supabase n'est pas configuré dans l'application.");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Ta session a expiré. Reconnecte-toi à YAMA.");
+      const attachments = await Promise.all(files.map(async (item) => ({
+        name: item.file.name,
+        mimeType: item.file.type || "application/octet-stream",
+        data: await fileToDataUrl(item.file),
+      })));
+      const imageFile = files.find((item) => item.file.type.startsWith("image/"));
+      const imageData = imageFile ? await fileToDataUrl(imageFile.file) : undefined;
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token },
+        body: JSON.stringify({
+          mode, prompt,
+          attachments: mode === "retouch" ? [] : attachments,
+          imageData, imageMimeType: imageFile?.file.type,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Yama AI n'a pas pu répondre.");
+      if (data.type === "image" && data.dataUrl) {
+        setAiResults((current) => [{ type: "image", mimeType: data.mimeType || "image/png", dataUrl: data.dataUrl }, ...current].slice(0, 4));
+      } else if (data.type === "text") {
+        setAiResults((current) => [{ type: "text", text: data.text || "Yama AI n'a pas retourné de texte." }, ...current].slice(0, 6));
+      }
+      setGenerated((current) => [mode === "image" ? "Image générée avec Hugging Face." : mode === "retouch" ? "Image retouchée avec Hugging Face." : "Réponse générée par Gemini.", ...current].slice(0, 4));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur inattendue est survenue.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -89,11 +131,11 @@ export function YamaAIStudio() {
             <div><span className="card-kicker">Mode {activeTool.label}</span><h3>{modeCopy.title}</h3></div>
           </div>
 
-          {(mode === "retouch" || mode === "files" || mode === "homework") && (
+          {(mode === "retouch" || mode === "files" || mode === "homework" || mode === "chat" || mode === "learn") && (
             <button className="upload-zone" onClick={() => inputRef.current?.click()}>
               <Upload size={23} />
               <strong>Importer des fichiers</strong>
-              <span>Images, audio, PDF et documents selon le mode</span>
+              <span>Images, PDF et documents selon le mode</span>
               <input ref={inputRef} type="file" multiple hidden accept="image/*,.pdf,.doc,.docx,.txt" onChange={(e) => addFiles(e.target.files)} />
             </button>
           )}
@@ -110,10 +152,12 @@ export function YamaAIStudio() {
 
           <div className="ai-composer-footer">
             <button className="secondary-action" onClick={() => inputRef.current?.click()}><Upload size={17} /> Ajouter un fichier</button>
-            <button className="primary-button ai-run" disabled={!canGenerate} onClick={runAction}>
-              {mode === "homework" || mode === "learn" ? "Commencer" : "Préparer la génération"} <Play size={17} />
+            <button className="primary-button ai-run" disabled={!canGenerate || loading} onClick={runAction}>
+              {loading ? "Yama réfléchit..." : mode === "homework" || mode === "learn" ? "Commencer" : mode === "image" ? "Créer l'image" : mode === "retouch" ? "Retoucher l'image" : "Envoyer à Yama AI"} <Play size={17} />
             </button>
           </div>
+
+          {error && <p className="connection-error" role="alert">{error}</p>}
 
           {files.length > 0 && (
             <div className="file-list">
@@ -151,6 +195,18 @@ export function YamaAIStudio() {
         </div>
       )}
 
+      {aiResults.length > 0 && (
+        <div className="ai-results">
+          <div className="section-title"><div><span className="card-kicker">Réponses réelles</span><h3>Yama AI</h3></div><Sparkles size={21} /></div>
+          {aiResults.map((result, index) => result.type === "image" ? (
+            <div className="ai-result ai-image-result" key={index}>
+              <img src={result.dataUrl} alt="Résultat généré par Yama AI" />
+            </div>
+          ) : (
+            <div className="ai-result" key={index}><Sparkles size={18} /><span>{result.text}</span></div>
+          ))}
+        </div>
+      )}
       {generated.length > 0 && (
         <div className="ai-results">
           <div className="section-title"><div><span className="card-kicker">Activité récente</span><h3>Flux Yama AI</h3></div><Sparkles size={21} /></div>
