@@ -1,17 +1,16 @@
 import { useMemo, useRef, useState } from "react";
 import {
-  BookOpen, CheckCircle2, FileImage, FileText, Film, ImagePlus, Lightbulb,
-  Mic2, Pencil, Play, Sparkles, Upload, Video, WandSparkles, X,
+  BookOpen, CheckCircle2, FileImage, FileText, ImagePlus, Lightbulb,
+  Mic2, Play, Sparkles, Upload, WandSparkles, X,
 } from "lucide-react";
 
-type StudioMode = "chat" | "image" | "retouch" | "video" | "audio" | "files" | "homework" | "learn";
+type StudioMode = "chat" | "image" | "retouch" | "audio" | "files" | "homework" | "learn";
 type LocalFile = { id: string; file: File; url: string };
 
 const tools: { id: StudioMode; label: string; description: string; icon: typeof Sparkles }[] = [
   { id: "chat", label: "Assistant", description: "Réfléchir, écrire et organiser", icon: Sparkles },
   { id: "image", label: "Images", description: "Créer des visuels à partir d'une idée", icon: ImagePlus },
   { id: "retouch", label: "Retouche", description: "Améliorer et transformer une image", icon: WandSparkles },
-  { id: "video", label: "Vidéo", description: "Préparer des scènes et générer une vidéo", icon: Video },
   { id: "audio", label: "Audio", description: "Voix, sons et ambiances", icon: Mic2 },
   { id: "files", label: "Fichiers", description: "Importer et travailler avec tes documents", icon: Upload },
   { id: "homework", label: "Devoirs", description: "Comprendre et résoudre un exercice", icon: BookOpen },
@@ -33,7 +32,6 @@ export function YamaAIStudio() {
     chat: { title: "Ton espace de réflexion", placeholder: "Écris ce que tu veux faire avec Yama…" },
     image: { title: "Créer une image", placeholder: "Décris l'image que tu veux créer…" },
     retouch: { title: "Retoucher une image", placeholder: "Ex. améliorer la lumière, supprimer un élément, restaurer…" },
-    video: { title: "Créer une vidéo", placeholder: "Décris la scène, le style, la durée et le mouvement…" },
     audio: { title: "Créer un son", placeholder: "Décris une voix, une musique, une ambiance ou un effet…" },
     files: { title: "Travailler avec un fichier", placeholder: "Que veux-tu que Yama fasse avec ton document ?" },
     homework: { title: "Aide aux devoirs", placeholder: "Colle l'énoncé ou explique ce qui te bloque…" },
@@ -97,7 +95,7 @@ export function YamaAIStudio() {
             <button className="upload-zone" onClick={() => inputRef.current?.click()}>
               <Upload size={23} />
               <strong>Importer des fichiers</strong>
-              <span>Images, vidéos, audio, PDF et documents selon le mode</span>
+              <span>Images, audio, PDF et documents selon le mode</span>
               <input ref={inputRef} type="file" multiple hidden accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" onChange={(e) => addFiles(e.target.files)} />
             </button>
           )}
@@ -123,7 +121,7 @@ export function YamaAIStudio() {
             <div className="file-list">
               {files.map((item) => (
                 <div className="file-chip" key={item.id}>
-                  {item.file.type.startsWith("image/") ? <FileImage size={17} /> : item.file.type.startsWith("video/") ? <Film size={17} /> : <FileText size={17} />}
+                  {item.file.type.startsWith("image/") ? <FileImage size={17} /> : <FileText size={17} />}
                   <span>{item.file.name}</span>
                   <button onClick={() => removeFile(item.id)} aria-label="Retirer le fichier"><X size={15} /></button>
                 </div>
@@ -136,7 +134,7 @@ export function YamaAIStudio() {
           <div className="ai-side-card">
             <span className="card-kicker">Pipeline YAMA</span>
             <h3>Créer → vérifier → améliorer</h3>
-            <p>Le studio est préparé pour connecter ensuite les moteurs réels de génération d'image, vidéo, audio et les modèles d'assistance.</p>
+            <p>Le studio est préparé pour connecter les moteurs réels de génération d'image, de retouche, d'audio et les modèles d'assistance.</p>
             <div className="pipeline"><span>01</span> Comprendre <span>02</span> Produire <span>03</span> Affiner</div>
           </div>
           <div className="ai-side-card">
