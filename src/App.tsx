@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, Cloud as CloudIcon, Gift, Heart, Home, Image, Lightbulb, Pencil, Plus, Sparkles, Target, UserRound } from "lucide-react";
+import { ArrowRight, Check, Cloud as CloudIcon, Heart, Home, Image, Lightbulb, Pencil, Plus, Sparkles, Target, UserRound } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { AuthGate } from "./components/AuthGate";
 import { YamaCorePanel } from "./components/YamaCorePanel";
 import { YamaAIStudio } from "./components/YamaAIStudio";
 import { getMemories, getMoodHistory, getWishlist, type Memory, type MoodEntry, type WishlistItem } from "./features/yamaCore";
 
-type Tab = "home" | "memories" | "wishlist" | "surprises" | "mood" | "ai" | "me";
+type Tab = "home" | "memories" | "wishlist" | "mood" | "ai" | "me";
 type Profile = { name: string; nickname: string; favoriteColor: string; favoriteThings: string[]; note: string };
 
 const tabs = [
@@ -14,7 +14,6 @@ const tabs = [
   { id: "memories" as Tab, label: "Souvenirs", icon: Image },
   { id: "wishlist" as Tab, label: "Wishlist", icon: Heart },
   { id: "mood" as Tab, label: "Humeur", icon: Sparkles },
-  { id: "surprises" as Tab, label: "Surprises", icon: Gift },
   { id: "ai" as Tab, label: "Yama AI", icon: Sparkles },
   { id: "me" as Tab, label: "Moi", icon: UserRound },
 ];
@@ -169,7 +168,8 @@ export default function App() {
     : tab === "memories" ? "Nos souvenirs."
     : tab === "wishlist" ? "Tes envies."
     : tab === "mood" ? "Ton humeur."
-    : "Petites surprises.";
+    : tab === "ai" ? "Ton espace Yama AI."
+    : "Ce que tu veux partager.";
 
   if (!sessionReady) return <main className="auth-shell"><section className="auth-card"><div className="auth-mark"><Heart size={25} fill="currentColor" /></div><h1>YAMA</h1><p>Chargement de ton univers…</p></section></main>;
   if (supabase && !userEmail) return <AuthGate />;
@@ -259,17 +259,6 @@ export default function App() {
       {tab === "wishlist" && <YamaCorePanel mode="wishlist" />}
       {tab === "mood" && <YamaCorePanel mode="mood" currentMood={mood} />}
       {tab === "ai" && <YamaAIStudio />}
-
-      {tab === "surprises" && (
-        <section className="content-section">
-          <div className="section-title"><div><span className="card-kicker">À découvrir</span><h2>Des surprises personnalisées</h2></div><Gift size={25} /></div>
-          <div className="surprise-grid">
-            <article className="surprise-item"><span>01</span><h3>{suggestion.title}</h3><p>{suggestion.reason}</p><button className="text-button" onClick={() => navigate(suggestion.target)}>Explorer <ArrowRight size={17}/></button></article>
-            <article className="surprise-item"><span>02</span><h3>Une attention pour aujourd'hui</h3><p>{mood ? "Ton humeur actuelle est " + mood + ". YAMA pourra bientôt adapter ses suggestions à ton état du moment." : "Choisis ton humeur pour permettre à YAMA de personnaliser ses futures suggestions."}</p><button className="text-button" onClick={() => navigate("mood")}>Choisir mon humeur <ArrowRight size={17}/></button></article>
-          </div>
-          <div className="surprise-banner"><Gift size={24}/><div><strong>Le moteur de surprises arrive ensuite.</strong><p>Il pourra combiner préférences, humeur, souvenirs autorisés et wishlist pour expliquer pourquoi une idée t'est proposée.</p></div></div>
-        </section>
-      )}
 
       {tab === "me" && (
         <section className="content-section">
