@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, Gift, Heart, Home, Image, Lightbulb, Pencil, Plus, Sparkles, Target, UserRound } from "lucide-react";
+import { ArrowRight, Check, Cloud as CloudIcon, Gift, Heart, Home, Image, Lightbulb, Pencil, Plus, Sparkles, Target, UserRound } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { AuthGate } from "./components/AuthGate";
 import { YamaCorePanel } from "./components/YamaCorePanel";
+import { YamaAIStudio } from "./components/YamaAIStudio";
 import { getMemories, getMoodHistory, getWishlist, type Memory, type MoodEntry, type WishlistItem } from "./features/yamaCore";
 
-type Tab = "home" | "memories" | "wishlist" | "surprises" | "mood" | "me";
+type Tab = "home" | "memories" | "wishlist" | "surprises" | "mood" | "ai" | "me";
 type Profile = { name: string; nickname: string; favoriteColor: string; favoriteThings: string[]; note: string };
 
 const tabs = [
@@ -14,6 +15,7 @@ const tabs = [
   { id: "wishlist" as Tab, label: "Wishlist", icon: Heart },
   { id: "mood" as Tab, label: "Humeur", icon: Sparkles },
   { id: "surprises" as Tab, label: "Surprises", icon: Gift },
+  { id: "ai" as Tab, label: "Yama AI", icon: Sparkles },
   { id: "me" as Tab, label: "Moi", icon: UserRound },
 ];
 
@@ -186,7 +188,7 @@ export default function App() {
         </div>
         <div className="hero-art" aria-hidden="true">
           <span className="hero-orbit hero-orbit-one" /><span className="hero-orbit hero-orbit-two" />
-          <div className="hero-monogram">Y</div><div className="hero-mood">{mood || "☁️"}</div>
+          <div className="hero-monogram">Y</div><div className="hero-mood">{mood ? <span className="mood-letter">{mood === "😊" ? "S" : mood === "🥰" ? "A" : mood === "😌" ? "C" : mood === "😴" ? "R" : "L"}</span> : <CloudIcon />}</div>
         </div>
       </section>
 
@@ -242,14 +244,14 @@ export default function App() {
             <div className="ai-card-top"><div className="suggestion-icon"><Sparkles size={21}/></div><span className="card-kicker">Yama AI · Préparation</span></div>
             <h2>Une IA qui te connaît seulement si tu l'autorises.</h2>
             <p>Le profil, les souvenirs et la wishlist peuvent devenir un contexte personnalisé. Rien n'est présenté comme mémoire IA tant que tu ne l'as pas autorisé.</p>
-            <div className="ai-permission-row"><span>{aiMemories} souvenir(s) autorisé(s)</span><span>{aiWishlist} envie(s) autorisée(s)</span><span>🔒 Contrôle par toi</span></div>
+            <div className="ai-permission-row"><span>{aiMemories} souvenir(s) autorisé(s)</span><span>{aiWishlist} envie(s) autorisée(s)</span><span>Contrôle des permissions</span></div>
           </section>
         </div>
       )}
 
       {tab === "memories" && <YamaCorePanel mode="memories" />}
       {tab === "wishlist" && <YamaCorePanel mode="wishlist" />}
-      {tab === "mood" && <YamaCorePanel mode="mood" currentMood={mood} />}
+      {tab === "mood" && <YamaCorePanel mode="mood" currentMood={mood} />}\n      {tab === "ai" && <YamaAIStudio />}
 
       {tab === "surprises" && (
         <section className="content-section">
