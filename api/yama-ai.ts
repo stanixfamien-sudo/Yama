@@ -62,6 +62,17 @@ function dataUrlToBytes(dataUrl: string) {
   return { mimeType, bytes };
 }
 
+function bytesToBase64(bytes: Uint8Array) {
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(index, Math.min(index + chunkSize, bytes.length))
+    );
+  }
+  return btoa(binary);
+}
+
 async function requireUser(request: Request) {
   const authorization = request.headers.get("authorization");
   if (!authorization?.startsWith("Bearer ")) {
@@ -154,7 +165,7 @@ async function runHuggingFace(body: Body) {
     });
 
     const bytes = new Uint8Array(await image.arrayBuffer());
-    const base64 = btoa(String.fromCharCode(...bytes));
+    const base64 = bytesToBase64(bytes);
     const mimeType = image.type || "image/png";
 
     return {
@@ -174,12 +185,12 @@ async function runHuggingFace(body: Body) {
 
     const image = await hf.imageTextToImage({
       model: HF_EDIT_MODEL,
-      inputs: prompt,
-      image: new Blob([bytes], { type: body.imageMimeType || mimeType }),
+      inputs: bytesToBase64(bytes),
+      parameters: { prompt },
     });
 
     const outputBytes = new Uint8Array(await image.arrayBuffer());
-    const outputBase64 = btoa(String.fromCharCode(...outputBytes));
+    const outputBase64 = bytesToBase64(outputBytes);
     const outputMime = image.type || "image/png";
 
     return {
