@@ -96,7 +96,7 @@ export function YamaAIStudio() {
               <Upload size={23} />
               <strong>Importer des fichiers</strong>
               <span>Images, audio, PDF et documents selon le mode</span>
-              <input ref={inputRef} type="file" multiple hidden accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" onChange={(e) => addFiles(e.target.files)} />
+              <input ref={inputRef} type="file" multiple hidden accept="image/*,audio/*,.pdf,.doc,.docx,.txt" onChange={(e) => addFiles(e.target.files)} />
             </button>
           )}
 
