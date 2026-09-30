@@ -16,7 +16,9 @@ import {
   type WishlistItem,
 } from "../features/yamaCore";
 
-const moodLabels: Record<string, string> = { "😊": "Joyeuse", "🥰": "Affectueuse", "😌": "Calme", "😴": "Fatiguée", "✨": "Inspirée" };\n\ntype Props = {
+const moodLabels: Record<string, string> = { "😊": "Joyeuse", "🥰": "Affectueuse", "😌": "Calme", "😴": "Fatiguée", "✨": "Inspirée" };
+
+type Props = {
   mode: "memories" | "wishlist" | "mood";
   currentMood?: string;
 };
