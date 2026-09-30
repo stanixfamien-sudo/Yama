@@ -1,17 +1,16 @@
 import { useMemo, useRef, useState } from "react";
 import {
   BookOpen, CheckCircle2, FileImage, FileText, ImagePlus, Lightbulb,
-  Mic2, Play, Sparkles, Upload, WandSparkles, X,
+  Play, Sparkles, Upload, WandSparkles, X,
 } from "lucide-react";
 
-type StudioMode = "chat" | "image" | "retouch" | "audio" | "files" | "homework" | "learn";
+type StudioMode = "chat" | "image" | "retouch" | "files" | "homework" | "learn";
 type LocalFile = { id: string; file: File; url: string };
 
 const tools: { id: StudioMode; label: string; description: string; icon: typeof Sparkles }[] = [
   { id: "chat", label: "Assistant", description: "Réfléchir, écrire et organiser", icon: Sparkles },
   { id: "image", label: "Images", description: "Créer des visuels à partir d'une idée", icon: ImagePlus },
   { id: "retouch", label: "Retouche", description: "Améliorer et transformer une image", icon: WandSparkles },
-  { id: "audio", label: "Audio", description: "Voix, sons et ambiances", icon: Mic2 },
   { id: "files", label: "Fichiers", description: "Importer et travailler avec tes documents", icon: Upload },
   { id: "homework", label: "Devoirs", description: "Comprendre et résoudre un exercice", icon: BookOpen },
   { id: "learn", label: "Apprendre", description: "Créer un parcours et s'entraîner", icon: Lightbulb },
@@ -32,7 +31,6 @@ export function YamaAIStudio() {
     chat: { title: "Ton espace de réflexion", placeholder: "Écris ce que tu veux faire avec Yama…" },
     image: { title: "Créer une image", placeholder: "Décris l'image que tu veux créer…" },
     retouch: { title: "Retoucher une image", placeholder: "Ex. améliorer la lumière, supprimer un élément, restaurer…" },
-    audio: { title: "Créer un son", placeholder: "Décris une voix, une musique, une ambiance ou un effet…" },
     files: { title: "Travailler avec un fichier", placeholder: "Que veux-tu que Yama fasse avec ton document ?" },
     homework: { title: "Aide aux devoirs", placeholder: "Colle l'énoncé ou explique ce qui te bloque…" },
     learn: { title: "Apprendre avec Yama", placeholder: "Quelle matière ou quelle compétence veux-tu travailler ?" },
@@ -96,7 +94,7 @@ export function YamaAIStudio() {
               <Upload size={23} />
               <strong>Importer des fichiers</strong>
               <span>Images, audio, PDF et documents selon le mode</span>
-              <input ref={inputRef} type="file" multiple hidden accept="image/*,audio/*,.pdf,.doc,.docx,.txt" onChange={(e) => addFiles(e.target.files)} />
+              <input ref={inputRef} type="file" multiple hidden accept="image/*,.pdf,.doc,.docx,.txt" onChange={(e) => addFiles(e.target.files)} />
             </button>
           )}
 
@@ -134,7 +132,7 @@ export function YamaAIStudio() {
           <div className="ai-side-card">
             <span className="card-kicker">Pipeline YAMA</span>
             <h3>Créer → vérifier → améliorer</h3>
-            <p>Le studio est préparé pour connecter les moteurs réels de génération d'image, de retouche, d'audio et les modèles d'assistance.</p>
+            <p>Le studio est préparé pour connecter les moteurs réels de génération d'image, de retouche et les modèles d'assistance.</p>
             <div className="pipeline"><span>01</span> Comprendre <span>02</span> Produire <span>03</span> Affiner</div>
           </div>
           <div className="ai-side-card">
