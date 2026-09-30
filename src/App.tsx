@@ -19,7 +19,13 @@ const tabs = [
   { id: "me" as Tab, label: "Moi", icon: UserRound },
 ];
 
-const moods = [\n  { value: "😊", label: "Joyeuse", mark: "J" },\n  { value: "🥰", label: "Affectueuse", mark: "A" },\n  { value: "😌", label: "Calme", mark: "C" },\n  { value: "😴", label: "Fatiguée", mark: "F" },\n  { value: "✨", label: "Inspirée", mark: "I" },\n];
+const moods = [
+  { value: "😊", label: "Joyeuse", mark: "J" },
+  { value: "🥰", label: "Affectueuse", mark: "A" },
+  { value: "😌", label: "Calme", mark: "C" },
+  { value: "😴", label: "Fatiguée", mark: "F" },
+  { value: "✨", label: "Inspirée", mark: "I" },
+];
 const interests = ["Musique", "Mode", "Voyage", "Films", "Food", "Lecture", "Sport", "Art"];
 const emptyProfile: Profile = { name: "", nickname: "", favoriteColor: "", favoriteThings: [], note: "" };
 
@@ -251,7 +257,8 @@ export default function App() {
 
       {tab === "memories" && <YamaCorePanel mode="memories" />}
       {tab === "wishlist" && <YamaCorePanel mode="wishlist" />}
-      {tab === "mood" && <YamaCorePanel mode="mood" currentMood={mood} />}\n      {tab === "ai" && <YamaAIStudio />}
+      {tab === "mood" && <YamaCorePanel mode="mood" currentMood={mood} />}
+      {tab === "ai" && <YamaAIStudio />}
 
       {tab === "surprises" && (
         <section className="content-section">
