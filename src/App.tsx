@@ -28,8 +28,32 @@ export default function App() {
   const [profile, setProfile] = useState<Profile>(readProfile);
   const [mood, setMood] = useState("");
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [syncError, setSyncError] = useState("");
 
   useEffect(() => { localStorage.setItem("yama-profile", JSON.stringify(profile)); }, [profile]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadProfile() {
+      if (!supabase) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user || !mounted) return;
+      const { data, error } = await supabase.from("profiles").select("name,nickname,favorite_color,favorite_things,note").eq("id", session.user.id).maybeSingle();
+      if (error) { if (mounted) setSyncError(error.message); return; }
+      if (data && mounted) {
+        setProfile({
+          name: data.name ?? "",
+          nickname: data.nickname ?? "",
+          favoriteColor: data.favorite_color ?? "",
+          favoriteThings: data.favorite_things ?? [],
+          note: data.note ?? "",
+        });
+      }
+    }
+    loadProfile();
+    return () => { mounted = false; };
+  }, []);
 
   const name = profile.nickname || profile.name || "Yama";
 
@@ -40,6 +64,30 @@ export default function App() {
         ? p.favoriteThings.filter((x) => x !== item)
         : [...p.favoriteThings, item],
     }));
+  }
+
+  async function saveProfile() {
+    if (!supabase) { setEditing(false); return; }
+    setSaving(true);
+    setSyncError("");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setSyncError("Aucune session Supabase active.");
+      setSaving(false);
+      return;
+    }
+    const { error } = await supabase.from("profiles").upsert({
+      id: session.user.id,
+      name: profile.name,
+      nickname: profile.nickname,
+      favorite_color: profile.favoriteColor,
+      favorite_things: profile.favoriteThings,
+      note: profile.note,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) setSyncError(error.message);
+    else setEditing(false);
+    setSaving(false);
   }
 
   function navigate(next: Tab) { setTab(next); setEditing(false); }
@@ -113,13 +161,13 @@ export default function App() {
               {profile.note && <p className="profile-note">“{profile.note}”</p>}
             </div>
           ) : (
-            <div className="form-card">
+            <div className="form-card">{syncError && <p className="connection-error">{syncError}</p>}
               <label>Ton prénom<input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} placeholder="Comment tu t'appelles ?" /></label>
               <label>Ton surnom<input value={profile.nickname} onChange={(e) => setProfile({ ...profile, nickname: e.target.value })} placeholder="Un surnom que tu aimes" /></label>
               <label>Une couleur que tu aimes<input value={profile.favoriteColor} onChange={(e) => setProfile({ ...profile, favoriteColor: e.target.value })} placeholder="Ex. rose, bleu, noir..." /></label>
               <div><span className="label">Ce qui t'intéresse</span><div className="interest-grid">{interests.map((item) => { const selected = profile.favoriteThings.includes(item); return <button className={selected ? "interest selected" : "interest"} key={item} onClick={() => toggleInterest(item)}>{selected && <Check size={15} />} {item}</button>; })}</div></div>
               <label>Une petite note pour ton univers<textarea value={profile.note} onChange={(e) => setProfile({ ...profile, note: e.target.value })} placeholder="Quelque chose que tu aimerais garder ici..." rows={4} /></label>
-              <button className="primary-button" onClick={() => setEditing(false)}>Enregistrer mon profil <Check size={18} /></button>
+              <button className="primary-button" onClick={saveProfile} disabled={saving}>{saving ? "Enregistrement..." : "Enregistrer mon profil"} <Check size={18} /></button>
             </div>
           )}
         </section>
