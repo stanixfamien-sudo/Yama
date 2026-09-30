@@ -92,9 +92,9 @@ export function YamaAIStudio() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Yama AI n'a pas pu répondre.");
       if (data.type === "image" && data.dataUrl) {
-        setAiResults((current) => [{ type: "image", mimeType: data.mimeType || "image/png", dataUrl: data.dataUrl }, ...current].slice(0, 4));
+        setAiResults((current) => [{ type: "image" as const, mimeType: String(data.mimeType || "image/png"), dataUrl: String(data.dataUrl) }, ...current].slice(0, 4));
       } else if (data.type === "text") {
-        setAiResults((current) => [{ type: "text", text: data.text || "Yama AI n'a pas retourné de texte." }, ...current].slice(0, 6));
+        setAiResults((current) => [{ type: "text" as const, text: String(data.text || "Yama AI n'a pas retourné de texte.") }, ...current].slice(0, 6));
       }
       setGenerated((current) => [mode === "image" ? "Image générée avec Hugging Face." : mode === "retouch" ? "Image retouchée avec Hugging Face." : "Réponse générée par Gemini.", ...current].slice(0, 4));
     } catch (err) {
