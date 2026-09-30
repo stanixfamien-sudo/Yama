@@ -1,35 +1,41 @@
 import { useEffect, useState } from "react";
-import { Check, Heart, Plus, Smile, Trash2 } from "lucide-react";
+import { Check, Plus, Smile, Target, Trash2 } from "lucide-react";
 import {
   addMoodEntry,
-  deleteMemory,
+  deleteTask,
   deleteWishlistItem,
-  getMemories,
+  getTasks,
+  
   getMoodHistory,
   getWishlist,
-  saveMemory,
+  saveTask,
+  
   saveWishlistItem,
-  updateMemory,
+  updateTask,
+  
   updateWishlistItem,
-  type Memory,
+
   type MoodEntry,
+  type Task,
   type WishlistItem,
 } from "../features/yamaCore";
 
 const moodLabels: Record<string, string> = { "😊": "Joyeuse", "🥰": "Affectueuse", "😌": "Calme", "😴": "Fatiguée", "✨": "Inspirée" };
 
 type Props = {
-  mode: "memories" | "wishlist" | "mood";
+  mode: "tasks" | "wishlist" | "mood";
   currentMood?: string;
 };
 
 export function YamaCorePanel({ mode, currentMood }: Props) {
-  const [memories, setMemories] = useState<Memory[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [moods, setMoods] = useState<MoodEntry[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Personnel");
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -37,9 +43,9 @@ export function YamaCorePanel({ mode, currentMood }: Props) {
     let active = true;
     setLoading(true);
     const load = async () => {
-      if (mode === "memories") {
-        const data = await getMemories();
-        if (active) setMemories(data);
+      if (mode === "tasks") {
+        const data = await getTasks();
+        if (active) setTasks(data);
       } else if (mode === "wishlist") {
         const data = await getWishlist();
         if (active) setWishlist(data);
@@ -53,19 +59,21 @@ export function YamaCorePanel({ mode, currentMood }: Props) {
     return () => { active = false; };
   }, [mode]);
 
-  async function createMemory() {
+  async function createTask() {
     if (!title.trim() || saving) return;
     setSaving(true);
-    const item = await saveMemory({
+    const item = await saveTask({
       title: title.trim(),
-      description: description.trim(),
-      category,
-      isFavorite: false,
-      isRetainedInAiMemory: false,
+      note: description.trim(),
+      priority,
+      dueDate,
+      isCompleted: false,
     });
-    setMemories((items) => [item, ...items]);
+    setTasks((items) => [item, ...items]);
     setTitle("");
     setDescription("");
+    setDueDate("");
+    setPriority("medium");
     setSaving(false);
   }
 
@@ -122,24 +130,24 @@ export function YamaCorePanel({ mode, currentMood }: Props) {
     );
   }
 
-  const isMemory = mode === "memories";
-  const items = isMemory ? memories : wishlist;
+  const isTask = mode === "tasks";
+  const items = isTask ? tasks : wishlist;
 
   return (
     <section className="content-section">
       <div className="section-title">
-        <div>
-          <span className="card-kicker">{isMemory ? "Privé" : "Envies"}</span>
-          <h2>{isMemory ? "Mes souvenirs" : "Ma wishlist"}</h2>
-        </div>
-        <Plus size={24} />
+        <div><span className="card-kicker">{isTask ? "Mon quotidien" : "Envies"}</span><h2>{isTask ? "Ce que tu veux accomplir." : "Ma wishlist"}</h2></div>
+        {isTask ? <Target size={24} /> : <Plus size={24} />}
       </div>
 
       <div className="form-card">
-        <label>{isMemory ? "Titre du souvenir" : "Une envie"}<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isMemory ? "Un moment à garder..." : "Quelque chose que tu aimerais..."}/></label>
-        <label>{isMemory ? "Description" : "Notes"}<textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Quelques détails..."/></label>
-        <label>Catégorie<input value={category} onChange={(e) => setCategory(e.target.value)} /></label>
-        <button className="primary-button" onClick={() => void (isMemory ? createMemory() : createWishlistItem())} disabled={saving}>
+        <label>{isTask ? "Ce que tu dois faire" : "Une envie"}<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isTask ? "Ex. Réviser les maths..." : "Quelque chose que tu aimerais..."}/></label>
+        <label>{isTask ? "Détails" : "Notes"}<textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Quelques détails..."/></label>
+        {isTask ? <>
+          <label>Priorité<select value={priority} onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high")}><option value="low">Normale</option><option value="medium">Importante</option><option value="high">Urgente</option></select></label>
+          <label>Date prévue<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label>
+        </> : <label>Catégorie<input value={category} onChange={(e) => setCategory(e.target.value)} /></label>}
+        <button className="primary-button" onClick={() => void (isTask ? createTask() : createWishlistItem())} disabled={saving}>
           {saving ? "Enregistrement..." : <>Ajouter <Plus size={18} /></>}
         </button>
       </div>
@@ -147,16 +155,16 @@ export function YamaCorePanel({ mode, currentMood }: Props) {
       {loading ? <div className="empty-state"><p>Chargement…</p></div> : (
         <div className="surprise-grid">
           {items.length === 0 ? (
-            <div className="empty-state"><h3>{isMemory ? "Le premier souvenir n'attend que toi." : "Ta wishlist est encore vide."}</h3><p>Ajoute un premier élément ci-dessus.</p></div>
-          ) : isMemory ? memories.map((item) => (
+            <div className="empty-state"><h3>{isTask ? "Ta journée est encore vide." : "Ta wishlist est encore vide."}</h3><p>{isTask ? "Ajoute ce qui compte aujourd'hui pour garder le cap." : "Ajoute un premier élément ci-dessus."}</p></div>
+          ) : isTask ? tasks.map((item) => (
             <article className="surprise-item" key={item.id}>
-              <span>{item.category}</span>
+              <span>{item.priority === "high" ? "Urgente" : item.priority === "medium" ? "Importante" : "Normale"}{item.dueDate ? " · " + new Date(item.dueDate).toLocaleDateString("fr-FR") : ""}</span>
               <h3>{item.title}</h3>
-              <p>{item.description || "Aucune description."}</p>
-              <button className="text-button" onClick={() => void updateMemory(item.id, { isRetainedInAiMemory: !item.isRetainedInAiMemory }).then(setMemories)}>
-                {item.isRetainedInAiMemory ? "Mémoire IA activée" : "Mémoire IA désactivée"}
+              <p>{item.note || "Aucun détail."}</p>
+              <button className="text-button" onClick={() => void updateTask(item.id, { isCompleted: !item.isCompleted }).then(setTasks)}>
+                {item.isCompleted ? "Terminée ✓" : "Marquer comme terminée"}
               </button>
-              <button className="circle-button" aria-label="Supprimer" onClick={() => void deleteMemory(item.id).then(setMemories)}><Trash2 size={16}/></button>
+              <button className="circle-button" aria-label="Supprimer" onClick={() => void deleteTask(item.id).then(setTasks)}><Trash2 size={16}/></button>
             </article>
           )) : wishlist.map((item) => (
             <article className="surprise-item" key={item.id}>
@@ -176,4 +184,5 @@ export function YamaCorePanel({ mode, currentMood }: Props) {
       )}
     </section>
   );
+
 }
